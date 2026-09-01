@@ -2,51 +2,62 @@
 
 > Projet portfolio Data Analyst · Secteur Logistique & Transport · 2025
 
-## 🎯 Contexte & Objectif
+![Analyse des Revenus](screenshots/revenus.png)
+![Ponctualité des Livraisons](screenshots/ponctualite.png)
+![Performance des Chauffeurs](screenshots/chauffeurs.png)
+![Coûts & Marges](screenshots/couts_marges.png)
 
-### Contexte
-Le secteur du transport routier génère des volumes massifs de données opérationnelles — trajets, livraisons, consommation carburant, performance des chauffeurs. L'enjeu pour un DA est de transformer ces données brutes en insights actionnables pour optimiser la rentabilité et la performance opérationnelle.
+---
 
-### Problématique
+## 🎯 Problématique
+
 **Comment analyser les performances opérationnelles d'une entreprise de transport routier pour identifier les leviers d'optimisation de la rentabilité ?**
 
-### Objectifs
-- Construire une base de données SQL à partir de données logistiques réelles
-- Écrire des requêtes SQL pour extraire les KPIs métier clés
-- Concevoir un dashboard Power BI interactif avec mesures DAX
-- Identifier les clients, routes et chauffeurs les plus performants
+---
 
-## 📊 Dashboard Power BI
+## 📊 KPIs Clés
 
-Le dashboard est structuré en 4 pages :
+| KPI | Valeur |
+|-----|--------|
+| 💰 Revenu total | 604.13M$ |
+| 📈 Marge brute | 508.53M$ |
+| ⛽ Coût carburant | 95.59M$ |
+| 🚚 Chargements totaux | 85K |
+| 👤 Revenu moyen par client | 1.51M$ |
+| 🕐 Taux de ponctualité moyen | 55.68% |
+| 🛣️ Livraisons analysées | 171K |
+| 👷 Trajets chauffeurs | 84K |
+| ⛽ Consommation moyenne | 6.50 MPG |
 
-### Page 1 — Analyse des Revenus
-- Revenu mensuel sur 3 ans (2022-2024)
-- Répartition par type de client (Contract, Spot, Dedicated)
-- Top 10 clients par revenu
-- KPIs : Revenu Total (604M$), Nb Chargements (85K), Revenu Moyen/Client (1.51M$)
+---
 
-### Page 2 — Ponctualité des Livraisons
-- Top 10 routes les plus ponctuelles
-- Taux de ponctualité moyen : 55.68%
-- Analyse par route avec nombre de livraisons
+## 💡 Insights Clés
 
-### Page 3 — Performance des Chauffeurs
-- Top 10 chauffeurs par revenu généré
-- Consommation moyenne (MPG)
-- Tableau détaillé avec nb trajets et revenus
+- **Thomas Gonzalez génère 4.6M$** — 12% de plus que la moyenne des Top 10 chauffeurs
+- **Taux de ponctualité à 55.68%** — moins d'1 livraison sur 2 à l'heure → levier majeur d'amélioration opérationnelle
+- **Las Vegas - Los Angeles = route la plus ponctuelle** (57.20%) → à analyser comme benchmark pour les autres routes
+- **Coût carburant = 15.8% du revenu total** → optimisation des trajets et du MPG = levier de marge direct
+- **Répartition équilibrée** des types de clients : Contract (37.6%), Dedicated (31.6%), Spot (30.8%) → pas de dépendance à un segment
 
-### Page 4 — Coûts & Marges
-- Évolution revenus vs coûts carburant
-- Marge brute mensuelle
-- KPIs : Coût Carburant (95.59M$), Marge Brute (508.53M$)
+---
+
+## 📊 Dashboard Power BI — 4 pages
+
+| Page | Contenu |
+|------|---------|
+| 💰 Revenus | Revenu mensuel 3 ans, répartition clients, Top 10 clients |
+| 🕐 Ponctualité | Top 10 routes, taux ponctualité, volume livraisons |
+| 👷 Chauffeurs | Top 10 par revenu, MPG, tableau détaillé |
+| 💹 Coûts & Marges | Revenus vs carburant, marge brute mensuelle |
+
+---
 
 ## 🗄️ Base de données SQL
 
 **14 tables · 550 000+ lignes**
 
 | Table | Description |
-|---|---|
+|-------|-------------|
 | `loads` | Chargements avec revenus et statuts |
 | `trips` | Trajets avec distance, durée, carburant |
 | `delivery_events` | Événements de livraison et ponctualité |
@@ -55,13 +66,37 @@ Le dashboard est structuré en 4 pages :
 | `routes` | Routes avec distances et tarifs |
 | `fuel_purchases` | Achats carburant par trajet |
 
+---
+
 ## 📝 Requêtes SQL clés
 
-- Revenus par client avec jointures multi-tables
-- Taux de ponctualité par route
-- Performance et rentabilité par chauffeur
-- Évolution mensuelle des marges (revenus - coûts carburant)
-- Utilisation des camions par nombre de trajets
+```sql
+-- Top 10 clients par revenu
+SELECT c.customer_name, SUM(l.revenue) as revenu_total
+FROM loads l JOIN customers c ON l.customer_id = c.customer_id
+GROUP BY c.customer_name ORDER BY revenu_total DESC LIMIT 10;
+
+-- Taux de ponctualité par route
+SELECT r.route_name,
+  CAST(SUM(CAST(de.on_time_flag AS INTEGER)) AS FLOAT) / COUNT(*) * 100 as taux_ponctualite
+FROM delivery_events de
+JOIN trips t ON de.trip_id = t.trip_id
+JOIN loads l ON t.load_id = l.load_id
+JOIN routes r ON l.route_id = r.route_id
+GROUP BY r.route_name ORDER BY taux_ponctualite DESC;
+
+-- Marge mensuelle (revenus - coûts carburant)
+SELECT strftime('%Y-%m', t.trip_date) as mois,
+  SUM(l.revenue) as revenu_total,
+  SUM(fp.total_cost) as cout_carburant,
+  SUM(l.revenue) - SUM(fp.total_cost) as marge_brute
+FROM trips t
+JOIN loads l ON t.load_id = l.load_id
+JOIN fuel_purchases fp ON t.trip_id = fp.trip_id
+GROUP BY mois ORDER BY mois;
+```
+
+---
 
 ## 📐 Mesures DAX
 
@@ -73,17 +108,21 @@ Taux Ponctualite Moyen = AVERAGE(ponctualite[taux_ponctualite])
 Revenu Moyen Par Client = AVERAGEX(revenus_client, revenus_client[revenu_total])
 ```
 
+---
+
 ## 🛠️ Stack technique
 
 - **SQL** · SQLite · DBeaver
-- **Python** · Pandas · sqlite3 *(import et agrégation des données)*
-- **Power BI Desktop** · DAX *(dashboard et mesures)*
+- **Python** · Pandas · sqlite3 *(import et agrégation)*
+- **Power BI Desktop** · DAX *(dashboard interactif)*
 - **GitHub** · versioning du projet
+
+---
 
 ## 🚀 Lancer le projet en local
 
 ```bash
-git clone https://github.com/TON_USERNAME/logistics-sql-powerbi
+git clone https://github.com/thierrylaguerre/logistics-sql-powerbi
 cd logistics-sql-powerbi
 pip install -r requirements.txt
 python import_db.py
@@ -91,7 +130,14 @@ python import_db.py
 
 Puis ouvrir `dashboard_logistique.pbix` dans Power BI Desktop.
 
+---
+
 ## 👤 Auteur
 
-**Thierry** · Candidat Data Analyst Junior · Paris Île-de-France
-Master Big Data Paris 8 · Licence Informatique Sorbonne Paris Nord
+**Thierry Laguerre** · Candidat Data Analyst Junior · Paris Île-de-France
+
+Master Big Data — Paris 8 · Licence Informatique — Sorbonne Paris Nord
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Thierry_Laguerre-blue?logo=linkedin)](https://www.linkedin.com/in/thierry-laguerre-ba1267257/)
+[![GitHub](https://img.shields.io/badge/GitHub-thierrylaguerre-black?logo=github)](https://github.com/thierrylaguerre)
+[![Email](https://img.shields.io/badge/Email-thierrylaguerre81@gmail.com-red?logo=gmail)](mailto:thierrylaguerre81@gmail.com)
