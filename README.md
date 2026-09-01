@@ -5,7 +5,7 @@
 ![Analyse des Revenus](screenshots/revenus.png)
 ![Ponctualité des Livraisons](screenshots/ponctualite.png)
 ![Performance des Chauffeurs](screenshots/chauffeurs.png)
-![Coûts & Marges](screenshots/couts_marges.png)
+![Coûts & Marges](screenshots/coutsmarges.png)
 
 ---
 
